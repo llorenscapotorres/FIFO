@@ -85,8 +85,13 @@ export default function RegisterPage() {
           disabled={submitting || !email.trim() || !password || !!clientPasswordError}
           className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
         >
-          Crear cuenta
+          {submitting ? "Creando cuenta..." : "Crear cuenta"}
         </button>
+        {submitting && (
+          <p className="text-xs text-slate-500">
+            Puede tardar hasta un minuto si el servidor llevaba un rato dormido.
+          </p>
+        )}
       </form>
 
       <p className="mt-4 text-sm text-slate-600">
