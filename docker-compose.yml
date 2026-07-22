@@ -42,8 +42,11 @@ services:
     depends_on:
       - backend
 
+  # On-demand backup: does NOT start with `docker compose up`. Run it
+  # yourself whenever you want a snapshot: `docker compose run --rm backup`
   backup:
     image: postgres:16-alpine
+    profiles: ["backup"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,18 +57,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       BACKUP_DB_NAME: ${BACKUP_DB_NAME:-fifo_db_backup}
-    entrypoint:
-      - sh
-      - -c
-      - |
-        if [ -z "$$NEON_DATABASE_URL" ]; then
-          echo "NEON_DATABASE_URL no está definido todavía; el servicio de backup no hará nada hasta que rellenes .env.";
-          sleep infinity;
-        fi
-        while true; do
-          sh /scripts/backup_from_neon.sh || echo "Backup fallido, se reintentará en 24h";
-          sleep 86400;
-        done
+    entrypoint: ["sh", "/scripts/backup_from_neon.sh"]
 
 volumes:
   pgdata:
