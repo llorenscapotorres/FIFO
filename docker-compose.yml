@@ -42,6 +42,31 @@ services:
     depends_on:
       - backend
 
+  backup:
+    image: postgres:16-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts:ro
+    environment:
+      NEON_DATABASE_URL: ${NEON_DATABASE_URL:-}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_DB_NAME: ${BACKUP_DB_NAME:-fifo_db_backup}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        if [ -z "$$NEON_DATABASE_URL" ]; then
+          echo "NEON_DATABASE_URL no está definido todavía; el servicio de backup no hará nada hasta que rellenes .env.";
+          sleep infinity;
+        fi
+        while true; do
+          sh /scripts/backup_from_neon.sh || echo "Backup fallido, se reintentará en 24h";
+          sleep 86400;
+        done
+
 volumes:
   pgdata:
   frontend_node_modules:

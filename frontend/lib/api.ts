@@ -12,7 +12,10 @@ import type {
   YearlyPnL,
 } from "./types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+// Empty string means "same origin" -- used in production, where requests go
+// through the Next.js rewrite proxy (see next.config.js) instead of a
+// separate NEXT_PUBLIC_API_BASE_URL, to keep the session cookie same-site.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 export class ApiRequestError extends Error {
   detail: string;
