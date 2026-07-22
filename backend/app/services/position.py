@@ -4,15 +4,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.exceptions import NotFoundError
-from app.models import Asset, PurchaseLot, SaleConsumption
+from app.models import Asset, PurchaseLot, Sale, SaleConsumption
 
 MONEY_QUANT = Decimal("0.01")
 SHARE_QUANT = Decimal("0.000001")
 
 
-def get_asset_or_404(db: Session, asset_id: int) -> Asset:
+def get_asset_or_404(db: Session, asset_id: int, user_id: int) -> Asset:
     asset = db.get(Asset, asset_id)
-    if asset is None:
+    if asset is None or asset.user_id != user_id:
         raise NotFoundError(f"Activo {asset_id} no encontrado.")
     return asset
 
@@ -54,7 +54,7 @@ def shares_already_consumed(db: Session, purchase_lot_id: int) -> Decimal:
     return Decimal(total) if total is not None else Decimal(0)
 
 
-def lot_summaries(db: Session, asset_id: int) -> list[dict]:
+def _lots_with_remaining_shares(db: Session, asset_id: int) -> list[tuple[PurchaseLot, Decimal]]:
     all_lots = db.execute(
         select(PurchaseLot)
         .where(PurchaseLot.asset_id == asset_id)
@@ -62,10 +62,12 @@ def lot_summaries(db: Session, asset_id: int) -> list[dict]:
     ).scalars().all()
 
     remaining_by_id = {lot.id: remaining for lot, remaining in remaining_lots(db, asset_id)}
+    return [(lot, remaining_by_id.get(lot.id, Decimal(0))) for lot in all_lots]
 
+
+def lot_summaries(db: Session, asset_id: int) -> list[dict]:
     summaries = []
-    for lot in all_lots:
-        remaining_shares = remaining_by_id.get(lot.id, Decimal(0))
+    for lot, remaining_shares in _lots_with_remaining_shares(db, asset_id):
         remaining_cost_basis = (remaining_shares * lot.price_per_share).quantize(MONEY_QUANT)
         summaries.append(
             {
@@ -80,8 +82,30 @@ def lot_summaries(db: Session, asset_id: int) -> list[dict]:
     return summaries
 
 
-def list_assets_with_position(db: Session) -> list[dict]:
-    assets = db.execute(select(Asset).order_by(Asset.name.asc())).scalars().all()
+def lots_with_remaining(db: Session, asset_id: int) -> list[dict]:
+    result = []
+    for lot, remaining_shares in _lots_with_remaining_shares(db, asset_id):
+        remaining_cost_basis = (remaining_shares * lot.price_per_share).quantize(MONEY_QUANT)
+        result.append(
+            {
+                "id": lot.id,
+                "asset_id": lot.asset_id,
+                "purchase_date": lot.purchase_date,
+                "amount_invested": lot.amount_invested,
+                "price_per_share": lot.price_per_share,
+                "shares_bought": lot.shares_bought,
+                "created_at": lot.created_at,
+                "remaining_shares": remaining_shares,
+                "remaining_cost_basis": remaining_cost_basis,
+            }
+        )
+    return result
+
+
+def list_assets_with_position(db: Session, user_id: int) -> list[dict]:
+    assets = db.execute(
+        select(Asset).where(Asset.user_id == user_id).order_by(Asset.name.asc())
+    ).scalars().all()
     result = []
     for asset in assets:
         lots = lot_summaries(db, asset.id)
@@ -99,8 +123,8 @@ def list_assets_with_position(db: Session) -> list[dict]:
     return result
 
 
-def asset_summary(db: Session, asset_id: int) -> dict:
-    get_asset_or_404(db, asset_id)
+def asset_summary(db: Session, asset_id: int, user_id: int) -> dict:
+    get_asset_or_404(db, asset_id, user_id)
     lots = lot_summaries(db, asset_id)
 
     total_shares_bought_all_time = sum((lot["shares_bought"] for lot in lots), Decimal(0))
@@ -119,3 +143,27 @@ def asset_summary(db: Session, asset_id: int) -> dict:
         "average_cost_per_remaining_share": average_cost_per_remaining_share,
         "per_lot": lots,
     }
+
+
+def yearly_pnl(db: Session, user_id: int) -> list[dict]:
+    year_col = func.extract("year", Sale.sale_date)
+    rows = db.execute(
+        select(
+            year_col.label("year"),
+            func.sum(Sale.gain_loss).label("gain_loss"),
+            func.count(Sale.id).label("sale_count"),
+        )
+        .join(Asset, Asset.id == Sale.asset_id)
+        .where(Asset.user_id == user_id)
+        .group_by(year_col)
+        .order_by(year_col.desc())
+    ).all()
+
+    return [
+        {
+            "year": int(row.year),
+            "gain_loss": row.gain_loss.quantize(MONEY_QUANT),
+            "sale_count": row.sale_count,
+        }
+        for row in rows
+    ]

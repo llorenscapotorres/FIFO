@@ -78,8 +78,10 @@ def _compute(
     )
 
 
-def preview_sale(db: Session, asset_id: int, sell_amount: Decimal, sell_price: Decimal) -> SalePreview:
-    get_asset_or_404(db, asset_id)
+def preview_sale(
+    db: Session, asset_id: int, sell_amount: Decimal, sell_price: Decimal, user_id: int
+) -> SalePreview:
+    get_asset_or_404(db, asset_id, user_id)
     return _compute(db, asset_id, sell_amount, sell_price, for_update=False)
 
 
@@ -97,9 +99,9 @@ def _add_consumptions(db: Session, sale_id: int, breakdown: list[ConsumptionRow]
 
 
 def commit_sale(
-    db: Session, asset_id: int, sale_date: date, sell_amount: Decimal, sell_price: Decimal
+    db: Session, asset_id: int, sale_date: date, sell_amount: Decimal, sell_price: Decimal, user_id: int
 ) -> Sale:
-    get_asset_or_404(db, asset_id)
+    get_asset_or_404(db, asset_id, user_id)
     preview = _compute(db, asset_id, sell_amount, sell_price, for_update=True)
 
     sale = Sale(
@@ -122,8 +124,15 @@ def commit_sale(
 
 
 def recompute_sale(
-    db: Session, asset_id: int, sale_id: int, sale_date: date, sell_amount: Decimal, sell_price: Decimal
+    db: Session,
+    asset_id: int,
+    sale_id: int,
+    sale_date: date,
+    sell_amount: Decimal,
+    sell_price: Decimal,
+    user_id: int,
 ) -> Sale:
+    get_asset_or_404(db, asset_id, user_id)
     sale = db.get(Sale, sale_id)
     if sale is None or sale.asset_id != asset_id:
         raise NotFoundError(f"Venta {sale_id} no encontrada para este activo.")

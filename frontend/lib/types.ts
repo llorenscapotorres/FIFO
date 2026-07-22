@@ -85,3 +85,15 @@ export type ApiError = {
   requested_shares?: string;
   blocking_sale_ids?: number[];
 };
+
+export type User = {
+  id: number;
+  email: string;
+  created_at: string;
+};
+
+export type YearlyPnL = {
+  year: number;
+  gain_loss: string;
+  sale_count: number;
+};

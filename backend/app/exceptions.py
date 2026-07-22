@@ -19,6 +19,14 @@ class ConflictError(DomainError):
     status_code = 409
 
 
+class UnauthorizedError(DomainError):
+    status_code = 401
+
+
+class ValidationError(DomainError):
+    status_code = 422
+
+
 class InsufficientSharesError(DomainError):
     status_code = 422
 

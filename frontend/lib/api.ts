@@ -8,6 +8,8 @@ import type {
   SaleInput,
   SalePreview,
   SaleWithBreakdown,
+  User,
+  YearlyPnL,
 } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -30,6 +32,7 @@ export class ApiRequestError extends Error {
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
   });
 
@@ -48,6 +51,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
   return res.json() as Promise<T>;
 }
+
+// Auth
+export const registerUser = (email: string, password: string) =>
+  request<User>("/api/auth/register", { method: "POST", body: JSON.stringify({ email, password }) });
+export const login = (email: string, password: string) =>
+  request<User>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+export const logout = () => request<void>("/api/auth/logout", { method: "POST" });
+export const getMe = () => request<User>("/api/auth/me");
+
+// Reports
+export const getYearlyPnL = () => request<YearlyPnL[]>("/api/reports/yearly-pnl");
 
 // Assets
 export const getAssets = () => request<Asset[]>("/api/assets");

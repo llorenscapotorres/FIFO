@@ -3,16 +3,21 @@
 import { useEffect, useState } from "react";
 import AddAssetForm from "@/components/AddAssetForm";
 import AssetList from "@/components/AssetList";
-import { getAssets } from "@/lib/api";
-import type { Asset } from "@/lib/types";
+import YearlyPnLSummary from "@/components/YearlyPnLSummary";
+import { getAssets, getYearlyPnL } from "@/lib/api";
+import type { Asset, YearlyPnL } from "@/lib/types";
 
 export default function DashboardPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [years, setYears] = useState<YearlyPnL[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAssets()
-      .then(setAssets)
+    Promise.all([getAssets(), getYearlyPnL()])
+      .then(([assetsResult, yearsResult]) => {
+        setAssets(assetsResult);
+        setYears(yearsResult);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -23,6 +28,12 @@ export default function DashboardPage() {
         Crea un activo (ETF, fondo indexado, acción...) y registra tus compras para calcular la
         ganancia o pérdida FIFO al vender.
       </p>
+
+      {!loading && years.length > 0 && (
+        <div className="mt-6">
+          <YearlyPnLSummary years={years} />
+        </div>
+      )}
 
       <div className="mt-6">
         <AddAssetForm onCreated={(asset) => setAssets((prev) => [...prev, asset])} />
