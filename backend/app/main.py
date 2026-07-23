@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.exceptions import register_exception_handlers
-from app.routers import assets, auth, lots, reports, sales
+from app.routers import assets, auth, imports, lots, reports, sales
 
 app = FastAPI(title="FIFO Tracker API")
 
@@ -22,6 +22,7 @@ app.include_router(assets.router)
 app.include_router(lots.router)
 app.include_router(sales.router)
 app.include_router(reports.router)
+app.include_router(imports.router)
 
 
 @app.get("/api/health")

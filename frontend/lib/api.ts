@@ -2,6 +2,9 @@ import type {
   Asset,
   AssetSummary,
   ApiError,
+  ImportConfirmRow,
+  ImportConfirmResult,
+  ImportRowPreview,
   LotInput,
   LotWithRemaining,
   Sale,
@@ -32,6 +35,17 @@ export class ApiRequestError extends Error {
   }
 }
 
+async function throwIfError(res: Response): Promise<void> {
+  if (res.ok) return;
+  let payload: ApiError;
+  try {
+    payload = await res.json();
+  } catch {
+    payload = { detail: `Error ${res.status}` };
+  }
+  throw new ApiRequestError(payload);
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -39,15 +53,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
   });
 
-  if (!res.ok) {
-    let payload: ApiError;
-    try {
-      payload = await res.json();
-    } catch {
-      payload = { detail: `Error ${res.status}` };
-    }
-    throw new ApiRequestError(payload);
-  }
+  await throwIfError(res);
 
   if (res.status === 204) {
     return undefined as T;
@@ -113,3 +119,23 @@ export const updateSale = (assetId: number, saleId: number, payload: SaleInput) 
   });
 export const deleteSale = (assetId: number, saleId: number) =>
   request<void>(`/api/assets/${assetId}/sales/${saleId}`, { method: "DELETE" });
+
+// Excel import
+export async function previewExcelImport(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  // No explicit Content-Type here: the browser sets the multipart boundary itself.
+  const res = await fetch(`${API_BASE_URL}/api/imports/excel/preview`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  await throwIfError(res);
+  return res.json() as Promise<ImportRowPreview[]>;
+}
+
+export const confirmExcelImport = (rows: ImportConfirmRow[]) =>
+  request<ImportConfirmResult>("/api/imports/excel/confirm", {
+    method: "POST",
+    body: JSON.stringify({ rows }),
+  });

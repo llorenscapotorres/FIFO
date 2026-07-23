@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { login, ApiRequestError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -11,7 +10,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const router = useRouter();
   const { refresh } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21,7 +19,7 @@ export default function LoginPage() {
     try {
       await login(email.trim(), password);
       await refresh();
-      router.push("/");
+      window.location.href = "/";
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.detail : "No se pudo iniciar sesión.");
     } finally {

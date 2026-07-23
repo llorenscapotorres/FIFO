@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { registerUser, ApiRequestError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -23,7 +22,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const router = useRouter();
   const { refresh } = useAuth();
 
   const clientPasswordError = password ? passwordError(password) : null;
@@ -40,7 +38,7 @@ export default function RegisterPage() {
     try {
       await registerUser(email.trim(), password);
       await refresh();
-      router.push("/");
+      window.location.href = "/";
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.detail : "No se pudo crear la cuenta.");
     } finally {

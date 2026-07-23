@@ -7,6 +7,7 @@ import type { Asset, AssetSummary, LotWithRemaining, Sale } from "@/lib/types";
 import PositionSummaryCard from "@/components/PositionSummaryCard";
 import AddLotForm from "@/components/AddLotForm";
 import LotsTable from "@/components/LotsTable";
+import AssetPriceChart from "@/components/AssetPriceChart";
 import SellForm from "@/components/SellForm";
 import SalesHistoryTable from "@/components/SalesHistoryTable";
 
@@ -55,6 +56,12 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <PositionSummaryCard summary={summary} />
+
+      {lots.length > 0 && (
+        <section>
+          <AssetPriceChart lots={lots} />
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-semibold text-slate-800">Compras</h2>

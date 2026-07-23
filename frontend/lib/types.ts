@@ -97,3 +97,34 @@ export type YearlyPnL = {
   gain_loss: string;
   sale_count: number;
 };
+
+export type ImportRowType = "purchase" | "sale" | "unknown";
+
+export type ImportRowPreview = {
+  row_number: number;
+  row_type: ImportRowType;
+  raw_asset_name: string;
+  matched_asset_id: number | null;
+  is_new_asset: boolean;
+  date: string | null;
+  price: string | null;
+  quantity: string | null;
+  amount: string | null;
+  warnings: string[];
+};
+
+export type ImportConfirmRow = {
+  row_type: "purchase" | "sale";
+  asset_id?: number | null;
+  new_asset_name?: string | null;
+  date: string;
+  price: string;
+  quantity: string;
+  amount: string;
+};
+
+export type ImportConfirmResult = {
+  created_assets: number;
+  created_lots: number;
+  created_sales: number;
+};
