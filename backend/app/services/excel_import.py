@@ -1,3 +1,5 @@
+import csv
+import io
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -6,6 +8,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher, get_close_matches
 from io import BytesIO
+from pathlib import Path
 
 import openpyxl
 from sqlalchemy import select
@@ -18,6 +21,8 @@ MONEY_QUANT = Decimal("0.01")
 
 FUZZY_COLUMN_CUTOFF = 0.72
 FUZZY_ASSET_CUTOFF = 0.8
+
+SUPPORTED_EXTENSIONS = {".xlsx", ".csv"}
 
 # Column headers vary a lot between brokers/banks, so each field is matched against a
 # set of common synonyms (in Spanish and English) rather than an exact/fixed name.
@@ -165,11 +170,46 @@ class ParsedRow:
     warnings: list[str] = field(default_factory=list)
 
 
-def parse_workbook(file_bytes: bytes) -> list[ParsedRow]:
-    workbook = openpyxl.load_workbook(BytesIO(file_bytes), data_only=True, read_only=True)
-    sheet = workbook.worksheets[0]
+def is_supported_filename(filename: str | None) -> bool:
+    return bool(filename) and Path(filename).suffix.lower() in SUPPORTED_EXTENSIONS
 
-    rows_iter = sheet.iter_rows(values_only=True)
+
+def _is_csv(filename: str | None) -> bool:
+    return bool(filename) and Path(filename).suffix.lower() == ".csv"
+
+
+def _excel_rows(file_bytes: bytes):
+    workbook = openpyxl.load_workbook(BytesIO(file_bytes), data_only=True, read_only=True)
+    return workbook.worksheets[0].iter_rows(values_only=True)
+
+
+def _decode_csv_bytes(file_bytes: bytes) -> str:
+    for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            return file_bytes.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return file_bytes.decode("utf-8", errors="replace")
+
+
+def _csv_rows(file_bytes: bytes):
+    text = _decode_csv_bytes(file_bytes)
+    try:
+        dialect = csv.Sniffer().sniff(text[:4096], delimiters=",;\t")
+    except csv.Error:
+        dialect = "excel"
+    for row in csv.reader(io.StringIO(text), dialect):
+        yield tuple(value.strip() or None for value in row)
+
+
+def parse_file(file_bytes: bytes, filename: str | None = None) -> list[ParsedRow]:
+    """Parse an uploaded .xlsx or .csv file into candidate transaction rows.
+
+    Column headers vary a lot between exports, so this doesn't assume a fixed layout --
+    see detect_columns() for the synonym-based matching that makes both formats work
+    the same way once the file is reduced to a plain grid of header + data rows.
+    """
+    rows_iter = iter(_csv_rows(file_bytes) if _is_csv(filename) else _excel_rows(file_bytes))
     header_row = next(rows_iter, None)
     if header_row is None:
         return []

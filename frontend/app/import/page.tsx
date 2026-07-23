@@ -118,21 +118,22 @@ export default function ImportExcelPage() {
         <Link href="/" className="text-xs text-slate-500 underline">
           &larr; volver a activos
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">Importar transacciones desde Excel</h1>
+        <h1 className="mt-1 text-2xl font-semibold">Importar transacciones desde Excel o CSV</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Sube un Excel con tus compras y/o ventas. Detectamos las columnas automáticamente aunque los
-          nombres varíen (fecha, activo, precio, cantidad, importe, tipo). Revisa y corrige antes de
-          confirmar — nada se guarda hasta que pulses &quot;Confirmar importación&quot;.
+          Sube un Excel (.xlsx) o CSV con tus compras y/o ventas. Detectamos las columnas
+          automáticamente aunque los nombres varíen (fecha, activo, precio, cantidad, importe, tipo).
+          Revisa y corrige antes de confirmar — nada se guarda hasta que pulses &quot;Confirmar
+          importación&quot;.
         </p>
       </div>
 
       <div className="rounded-md border border-slate-200 bg-white p-4">
         <label className="text-sm font-medium text-slate-700">
-          Archivo Excel (.xlsx)
+          Archivo Excel (.xlsx) o CSV
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx"
+            accept=".xlsx,.csv"
             onChange={handleFileChange}
             className="mt-2 block w-full text-sm"
           />

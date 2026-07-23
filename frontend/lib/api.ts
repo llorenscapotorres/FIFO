@@ -125,7 +125,7 @@ export async function previewExcelImport(file: File) {
   const formData = new FormData();
   formData.append("file", file);
   // No explicit Content-Type here: the browser sets the multipart boundary itself.
-  const res = await fetch(`${API_BASE_URL}/api/imports/excel/preview`, {
+  const res = await fetch(`${API_BASE_URL}/api/imports/preview`, {
     method: "POST",
     credentials: "include",
     body: formData,
@@ -135,7 +135,7 @@ export async function previewExcelImport(file: File) {
 }
 
 export const confirmExcelImport = (rows: ImportConfirmRow[]) =>
-  request<ImportConfirmResult>("/api/imports/excel/confirm", {
+  request<ImportConfirmResult>("/api/imports/confirm", {
     method: "POST",
     body: JSON.stringify({ rows }),
   });

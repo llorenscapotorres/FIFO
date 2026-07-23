@@ -38,7 +38,7 @@ export default function DashboardPage() {
           href="/import"
           className="shrink-0 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
-          Importar desde Excel
+          Importar desde Excel/CSV
         </Link>
       </div>
 

@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_current_user
+from app.exceptions import ValidationError
 from app.models import Asset, PurchaseLot, User
 from app.schemas.imports import ImportConfirmRequest, ImportConfirmResult, ImportRowPreview
 from app.services import excel_import, fifo
 
-router = APIRouter(prefix="/api/imports/excel", tags=["imports"])
+router = APIRouter(prefix="/api/imports", tags=["imports"])
 
 
 @router.post("/preview", response_model=list[ImportRowPreview])
@@ -16,8 +17,11 @@ async def preview_excel_import(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if not excel_import.is_supported_filename(file.filename):
+        raise ValidationError("Solo se admiten archivos .xlsx o .csv.")
+
     file_bytes = await file.read()
-    parsed_rows = excel_import.parse_workbook(file_bytes)
+    parsed_rows = excel_import.parse_file(file_bytes, file.filename)
     matches = excel_import.match_asset_names(db, current_user.id, parsed_rows)
 
     return [
